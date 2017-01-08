@@ -4,7 +4,6 @@ import json
 from lxml import etree
 from concurrent import futures
 import openpyxl
-from openpyxl.styles import Alignment
 from random import sample
 import requests
 
