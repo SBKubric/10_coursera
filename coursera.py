@@ -8,12 +8,16 @@ from random import sample
 import requests
 
 XML_FEED_URL = 'https://www.coursera.org/sitemap~www~courses.xml'
+TITLES_LIST = ['title', 'language', 'startDate', 'weeks_counter', 'average_rating']
+COURSES_AMOUNT = 20
+
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='This script fetches info about 20 random courses '
-                                                 'from Coursera XML feed to XSL file.')
-    parser.add_argument('-o', '--output', default='courses.xlsx', help='Name of the file with results')
+    parser = argparse.ArgumentParser(description='''This script fetches info about 20 random courses
+                                                    from Coursera XML feed to XSL file.''')
+    parser.add_argument('-o', '--output', default='courses.xlsx', help='''Name of the file with results.
+                                                                          Default value is courses.xlsx''')
     return parser.parse_args()
 
 
@@ -21,7 +25,7 @@ def get_course_url_list():
     xml_page = requests.get(XML_FEED_URL)
     xml_data = etree.fromstring(xml_page.content)
     urls = [url.text for url in xml_data.iter('{*}loc')]
-    courses_urls = sample(urls, 20)
+    courses_urls = sample(urls, COURSES_AMOUNT)
     return courses_urls
 
 
@@ -65,22 +69,20 @@ def retrieve_courses_info(courses_urls):
     return courses_info
 
 
-def output_courses_info_to_xlsx(filepath, course_slugs):
+def output_courses_info_to_xlsx(course_slugs):
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = 'courses_data'
-    worksheet.cell(row=1, column=1).value = 'Title'
-    worksheet.cell(row=1, column=2).value = 'Language'
-    worksheet.cell(row=1, column=3).value = 'Start Date'
-    worksheet.cell(row=1, column=4).value = 'Duration'
-    worksheet.cell(row=1, column=5).value = 'Average rating'
-    for number, course_slug in enumerate(course_slugs):
-        worksheet.cell(row=number + 2, column=1).value = course_slug['title']
-        worksheet.cell(row=number + 2, column=2).value = course_slug['language']
-        worksheet.cell(row=number + 2, column=3).value = course_slug['startDate']
-        worksheet.cell(row=number + 2, column=4).value = course_slug['weeks_counter']
-        worksheet.cell(row=number + 2, column=5).value = course_slug['average_rating']
-    workbook.save(filepath)
+    column_number = 0
+    for title in TITLES_LIST:
+        column_number += 1
+        worksheet.cell(row=1, column=column_number).value = title
+    for row_number, course_slug in enumerate(course_slugs, start=2):
+        column_number = 0
+        for title in TITLES_LIST:
+            column_number += 1
+            worksheet.cell(row=row_number, column=column_number).value = course_slug[title]
+    return workbook
 
 
 if __name__ == '__main__':
@@ -90,5 +92,6 @@ if __name__ == '__main__':
     print('Collecting info about courses...')
     courses_info_list = retrieve_courses_info(courses_url_list)
     print('Creating xlsx file...')
-    output_courses_info_to_xlsx(args.output, courses_info_list)
+    workbook = output_courses_info_to_xlsx(courses_info_list)
+    workbook.save(args.output)
     print('Saved to {}'.format(args.output))
